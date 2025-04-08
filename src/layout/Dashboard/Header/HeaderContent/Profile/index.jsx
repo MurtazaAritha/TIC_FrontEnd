@@ -16,6 +16,12 @@ import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
 
 // project import
 import ProfileTab from "./ProfileTab";
@@ -32,16 +38,29 @@ import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import { QuestionCircleOutlined, UserOutlined } from "@ant-design/icons";
+import {
+  KeyOutlined,
+  QuestionCircleOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
 import { AuthApiService } from "services/api/AuthApiService";
 import { useNavigate } from "react-router";
-import { API_SUCCESS_MESSAGE } from "shared/constants";
-import userIcon from  "../../../../../assets/images/icons/users2.svg";
-import informationIcon from  "../../../../../assets/images/icons/information.svg";
-import logoutIcon from  "../../../../../assets/images/icons/logout.svg";
+import userIcon from "../../../../../assets/images/icons/users2.svg";
+import informationIcon from "../../../../../assets/images/icons/information.svg";
+import logoutIcon from "../../../../../assets/images/icons/logout.svg";
+import passwordIcon from "../../../../../assets/images/icons/password.svg";
 
+import * as Yup from "yup";
+import { Formik } from "formik";
 
-
+import FormHelperText from "@mui/material/FormHelperText";
+import InputLabel from "@mui/material/InputLabel";
+import OutlinedInput from "@mui/material/OutlinedInput";
+import {
+  LOGIN_PAGE,
+  API_ERROR_MESSAGE,
+  API_SUCCESS_MESSAGE,
+} from "shared/constants";
 
 // ==============================|| HEADER CONTENT - PROFILE ||============================== //
 
@@ -49,22 +68,30 @@ export default function Profile() {
   const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(true);
 
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [openModal, setOpenmodal] = useState(false);
   const [snackData, setSnackData] = useState({
     show: false,
     message: "",
     type: "error",
   });
 
+  const handleCloseModal = () => {
+    setOpenmodal(false);
+  };
+
   const handleListItemClick = (index, url) => {
     setSelectedIndex(index);
     if (url === "logout") {
       handleLogout();
     }
-    if(url === "profileDetails")
-    {
+    if (url === "profileDetails") {
       navigate("/profileDetails");
+    }
+    if (url === "/changePassword") {
+      setOpenmodal(true);
     }
   };
 
@@ -106,7 +133,7 @@ export default function Profile() {
 
         sessionStorage.clear();
         localStorage.clear();
-       
+
         navigate("/login");
       })
       .catch((errResponse) => {
@@ -115,6 +142,50 @@ export default function Profile() {
           message: errResponse?.error?.message || "Internal server error",
           type: "error",
         });
+      });
+  };
+
+  const handleSubmitForm = (values,{ setSubmitting }) => {
+    let payload = {
+      oldPassword: values.currentPassword,
+      newPassword: values.password
+    };
+
+    console.log("payload",payload)
+   
+    AuthApiService.changePassword(payload)
+      .then((response) => {
+
+        console.log("response",response)
+
+        if(response?.message === "Old password is incorrect")
+        {
+          setSnackData({
+            show: true,
+            message: response?.message || API_SUCCESS_MESSAGE.PASSWORD_RESET,
+            type: "error",
+          });
+          setSubmitting(false);
+        }
+        else{
+          setSnackData({
+            show: true,
+            message: response?.message || API_SUCCESS_MESSAGE.PASSWORD_RESET,
+            type: "success",
+          });
+          setOpenmodal(false);
+        }
+        
+      })
+      .catch((errResponse) => {
+        setSnackData({
+          show: true,
+          message:
+            errResponse?.error?.message ||
+            API_ERROR_MESSAGE.INTERNAL_SERVER_ERROR,
+          type: "error",
+        });
+        setSubmitting(false); // This will reset isSubmitting in Formik
       });
   };
 
@@ -143,7 +214,8 @@ export default function Profile() {
           alignItems="center"
           sx={{ p: 0.5 }}
         >
-          {userdetails?.[0]?.user_profile && userdetails?.[0]?.user_profile !== "null" ? (
+          {userdetails?.[0]?.user_profile &&
+          userdetails?.[0]?.user_profile !== "null" ? (
             <img
               src={userdetails?.[0]?.user_profile}
               alt={value.user_first_name}
@@ -154,7 +226,8 @@ export default function Profile() {
           )}
 
           <Typography variant="subtitle1" sx={{ textTransform: "capitalize" }}>
-            {userdetails?.[0]?.user_first_name} {userdetails?.[0]?.user_last_name}
+            {userdetails?.[0]?.user_first_name}{" "}
+            {userdetails?.[0]?.user_last_name}
           </Typography>
         </Stack>
       </ButtonBase>
@@ -199,7 +272,7 @@ export default function Profile() {
                       justifyContent="space-between"
                       alignItems="center"
                     >
-                      <Grid item style={{width:"80%"}}>
+                      <Grid item style={{ width: "80%" }}>
                         <Stack
                           direction="row"
                           spacing={1.25}
@@ -222,13 +295,20 @@ export default function Profile() {
                               sx={{ width: 32, height: 32 }}
                             />
                           )}
-                          <Stack style={{width:"80%"}}>
-                            <Typography variant="h6" style={{wordBreak:"break-word"}}>
+                          <Stack style={{ width: "80%" }}>
+                            <Typography
+                              variant="h6"
+                              style={{ wordBreak: "break-word" }}
+                            >
                               {" "}
                               {userdetails?.[0]?.user_first_name}{" "}
                               {userdetails?.[0]?.user_last_name}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary" style={{wordBreak:"break-word"}}>
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              style={{ wordBreak: "break-word" }}
+                            >
                               {userdetails?.[0]?.user_email}
                             </Typography>
                           </Stack>
@@ -244,7 +324,7 @@ export default function Profile() {
                             }
                           >
                             {/* <LogoutOutlined /> */}
-                            <img src={logoutIcon} width="20px"/>
+                            <img src={logoutIcon} width="20px" />
                           </IconButton>
                         </Tooltip>
                       </Grid>
@@ -263,9 +343,20 @@ export default function Profile() {
                     >
                       <ListItemIcon>
                         {/* <UserOutlined /> */}
-                        <img src={userIcon} width="20px"/>
+                        <img src={userIcon} width="20px" />
                       </ListItemIcon>
                       <ListItemText primary="View Profile" />
+                    </ListItemButton>
+                    <ListItemButton
+                      selected={selectedIndex === 4}
+                      onClick={(event) =>
+                        handleListItemClick(4, "/changePassword")
+                      }
+                    >
+                      <ListItemIcon>
+                        <img src={passwordIcon} width="20px" />
+                      </ListItemIcon>
+                      <ListItemText primary="Change Password" />
                     </ListItemButton>
 
                     <ListItemButton
@@ -274,7 +365,7 @@ export default function Profile() {
                     >
                       <ListItemIcon>
                         {/* <QuestionCircleOutlined /> */}
-                        <img src={informationIcon} width="20px"/>
+                        <img src={informationIcon} width="20px" />
                       </ListItemIcon>
                       <ListItemText primary="Support" />
                     </ListItemButton>
@@ -284,7 +375,7 @@ export default function Profile() {
                     >
                       <ListItemIcon>
                         {/* <LogoutOutlined /> */}
-                        <img src={logoutIcon} width="20px"/>
+                        <img src={logoutIcon} width="20px" />
                       </ListItemIcon>
                       <ListItemText primary="Logout" />
                     </ListItemButton>
@@ -296,7 +387,7 @@ export default function Profile() {
         )}
       </Popper>
       <Snackbar
-      style={{top:"80px"}}
+        style={{ top: "80px",zIndex:1000000 }}
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
         open={snackData.show}
         autoHideDuration={3000}
@@ -309,6 +400,205 @@ export default function Profile() {
           {snackData.message}
         </Alert>
       </Snackbar>
+
+      <Dialog
+        open={openModal}
+        onClose={handleCloseModal}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          Password reset
+        </DialogTitle>
+        <DialogContent>
+          <Formik
+            initialValues={{
+              email: sessionStorage.getItem("email"),
+              currentPassword:"",
+              password: "",
+              confirmPassword: "",
+            }}
+            validationSchema={Yup.object().shape({
+              currentPassword: Yup.string().required("Current password is required"),
+              password: Yup.string()
+                .min(8, "Password must be at least 8 characters")
+                .matches(
+                  /[A-Z]/,
+                  "Password must contain at least one uppercase letter"
+                )
+                .matches(
+                  /[a-z]/,
+                  "Password must contain at least one lowercase letter"
+                )
+                .matches(/\d/, "Password must contain at least one number")
+                .matches(
+                  /[@$!%*?&]/,
+                  "Password must contain at least one special character"
+                )
+                .required("Password is required"),
+              confirmPassword: Yup.string()
+                .oneOf([Yup.ref("password"), null], "Passwords must match")
+                .required("Confirm Password is required"),
+            })}
+            onSubmit={handleSubmitForm} // Using Formik's onSubmit directly
+          >
+            {({
+              errors,
+              handleBlur,
+              handleChange,
+              handleSubmit,
+              isSubmitting,
+              touched,
+              values,
+            }) => (
+              <form noValidate onSubmit={handleSubmit}>
+                <Grid container spacing={3}>
+
+                <Grid item xs={12}>
+                    <Stack spacing={1}>
+                      <InputLabel htmlFor="old-password">
+                        {LOGIN_PAGE.CURRENT_PASSWORD}
+                      </InputLabel>
+                      <OutlinedInput
+                        fullWidth
+                        error={Boolean(touched.password && errors.password)}
+                        id="old-password"
+                        type={showPassword ? "text" : "password"}
+                        value={values.currentPassword}
+                        name="currentPassword"
+                        onBlur={handleBlur}
+                        onChange={handleChange}
+                        placeholder="Enter your current password"
+                      />
+                    </Stack>
+                    {touched.currentPassword && errors.currentPassword && (
+                      <FormHelperText
+                        error
+                        id="standard-weight-helper-text-currentPassword-reset"
+                      >
+                        {errors.currentPassword}
+                      </FormHelperText>
+                    )}
+                    
+                  </Grid>
+
+                  {/* Password Field */}
+                  <Grid item xs={12}>
+                    <Stack spacing={1}>
+                      <InputLabel htmlFor="password-reset">
+                        {LOGIN_PAGE.NEW_PASSWORD}
+                      </InputLabel>
+                      <OutlinedInput
+                        fullWidth
+                        error={Boolean(touched.password && errors.password)}
+                        id="password-reset"
+                        type={showPassword ? "text" : "password"}
+                        value={values.password}
+                        name="password"
+                        onBlur={handleBlur}
+                        onChange={handleChange}
+                        placeholder="Enter your new password"
+                      />
+                    </Stack>
+                    {touched.password && errors.password && (
+                      <FormHelperText
+                        error
+                        id="standard-weight-helper-text-password-reset"
+                      >
+                        {errors.password}
+                      </FormHelperText>
+                    )}
+                  </Grid>
+
+                  {/* Confirm Password Field */}
+                  <Grid item xs={12}>
+                    <Stack spacing={1}>
+                      <InputLabel htmlFor="confirm-password-reset">
+                        {LOGIN_PAGE.CONFIRM_PASSWORD}
+                      </InputLabel>
+                      <OutlinedInput
+                        fullWidth
+                        error={Boolean(
+                          touched.confirmPassword && errors.confirmPassword
+                        )}
+                        id="confirm-password-reset"
+                        type={showPassword ? "text" : "password"}
+                        value={values.confirmPassword}
+                        name="confirmPassword"
+                        onBlur={handleBlur}
+                        onChange={handleChange}
+                        placeholder="Re-enter your new password"
+                      />
+                    </Stack>
+                    {touched.confirmPassword && errors.confirmPassword && (
+                      <FormHelperText
+                        error
+                        id="standard-weight-helper-text-confirm-password-reset"
+                      >
+                        {errors.confirmPassword}
+                      </FormHelperText>
+                    )}
+                  </Grid>
+
+                  {/* Submit Button */}
+                  {errors.submit && (
+                    <Grid item xs={12}>
+                      <FormHelperText error>{errors.submit}</FormHelperText>
+                    </Grid>
+                  )}
+
+                  <Grid item xs={6}>
+                    <Button
+                      fullWidth
+                      size="large"
+                      onClick={handleCloseModal}
+                      variant="outlined"
+                      color="primary"
+                    >
+                      Cancel
+                    </Button>
+                  </Grid>
+
+                  <Grid item xs={6}>
+                    <Button
+                      disableElevation
+                      disabled={isSubmitting}
+                      fullWidth
+                      size="large"
+                      type="submit"
+                      variant="contained"
+                      color="primary"
+                    >
+                      Reset Password
+                    </Button>
+                  </Grid>
+                 
+                </Grid>
+                <Snackbar
+        style={{ top: "80px",zIndex:1000000 }}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        open={snackData.show}
+        autoHideDuration={3000}
+        onClose={() => setSnackData({ show: false })}
+      >
+        <Alert
+          onClose={() => setSnackData({ show: false })}
+          severity={snackData.type}
+        >
+          {snackData.message}
+        </Alert>
+      </Snackbar>
+              </form>
+            )}
+          </Formik>
+        </DialogContent>
+        <DialogActions>
+          {/* <Button onClick={handleCloseModal}>Disagree</Button>
+          <Button onClick={handleCloseModal} autoFocus>
+            Agree
+          </Button> */}
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

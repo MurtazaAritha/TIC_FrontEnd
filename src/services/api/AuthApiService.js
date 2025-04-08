@@ -15,6 +15,10 @@ const _verifyOtp = (payload) => {
 const _resetPassword = (payload) => {
   return BaseApiService.post(`/api/v1/resetPassword`, null, payload);
 };
+
+const _changePassword = (payload) => {
+  return BaseApiService.post(`/api/v1/changePassword`, null, payload);
+};
 const _logout = (payload) => {
   // console.log("payload",payload)
   return BaseApiService.post(`/api/v1/logout`,null,payload);
@@ -26,5 +30,6 @@ export const AuthApiService = {
   forgotPassword:_forgotPassword,
   verifyOtp: _verifyOtp,
   resetPassword:_resetPassword,
+  changePassword:_changePassword
 
 };

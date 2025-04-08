@@ -12,7 +12,8 @@ export const LOGIN_PAGE = {
   SEND_REQUEST: "Send Request",
   OTP_DESC:"Please enter the OTP (One Time Password) sent to your register email id to complete your verification",
   NEW_PASSWORD:"New Password",
-  CONFIRM_PASSWORD:"Confirm Password"
+  CONFIRM_PASSWORD:"Confirm Password",
+  CURRENT_PASSWORD:"Current Password",
 };
 
 export const API_SUCCESS_MESSAGE = {
